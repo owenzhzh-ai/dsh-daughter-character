@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>鲸团团 · 人设面板</title>
+<style>
+/* dsh-worktable 原生皮肤：内联进来，沙箱 iframe 里也不用再请求（那个请求会 401） */
+__DSHELL_CSS__
+</style>
+<style>
+  .hero{display:flex;gap:16px;align-items:center}
+  .hero img{width:104px;height:104px;border-radius:18px;object-fit:cover;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-fill-l1)}
+  .hero .meta{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--dsw-alias-fill-l1);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}
+  .chip.bad{border-color:#c2504a55;background:#c2504a1a;color:#c2504a}
+  .chip.good{border-color:#4a8cc255;background:#4a8cc21a;color:#3d7db3}
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .trait{display:flex;align-items:center;gap:8px;font-size:13px}
+  .trait span:first-child{width:56px;color:var(--dsw-alias-label-secondary)}
+  .trait .bar{flex:1}
+  .trait span:last-child{width:26px;text-align:right;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
+  .memItem{display:flex;gap:8px;align-items:flex-start}
+  .memItem .txt{flex:1;min-width:0;word-break:break-word}
+  .kbd{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:var(--dsw-alias-fill-l1);border:1px solid var(--dsw-alias-border-l1);border-radius:6px;padding:6px 8px;display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px}
+  .kbd code{white-space:pre-wrap;word-break:break-all;color:var(--dsw-alias-label-primary)}
+  textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.55}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .hint{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.6}
+  .toast{position:fixed;right:16px;bottom:16px;padding:8px 14px;border-radius:10px;background:var(--dsw-alias-state-accent-primary);color:#fff;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  .toast.on{opacity:1}
+  .speech{font-size:14px;line-height:1.75;color:var(--dsw-alias-label-primary);margin-top:10px;padding:10px 12px;border-left:2px solid var(--dsw-alias-state-accent-primary);background:var(--dsw-alias-fill-l1);border-radius:0 8px 8px 0;word-break:break-word}
+  .moodRow{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-top:10px}
+  .mood{font-size:26px;font-weight:700;line-height:1.1;color:var(--dsw-alias-state-accent-primary);letter-spacing:1px}
+  .mood small{font-size:13px;font-weight:400;color:var(--dsw-alias-label-tertiary);margin-left:6px;letter-spacing:0}
+  .moodRow .chip.hot{border-color:var(--dsw-alias-state-accent-primary);color:var(--dsw-alias-state-accent-primary)}
+  .speech.sub{font-size:13.5px;border-left-color:var(--dsw-alias-border-l2);background:transparent;padding:6px 0 6px 12px}
+  .qText{font-size:15px;line-height:1.8;color:var(--dsw-alias-label-primary);margin-top:8px;font-weight:600;word-break:break-word}
+  .qParts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.qPart{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;line-height:1.65;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-fill-l1);cursor:pointer;word-break:break-word}
+.qPart.on{border-color:#4a8cc2aa;background:#4a8cc214}
+.qPart.locked{cursor:default;opacity:.85}
+.qPart input{margin-top:3px;accent-color:#4a8cc2}
+.dlg{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+  .dlgItem{font-size:13px;line-height:1.65;padding:7px 10px;border-radius:10px;max-width:92%;word-break:break-word}
+  .dlgItem.me{background:var(--dsw-alias-fill-l1);border:1px solid var(--dsw-alias-border-l1)}
+  .dlgItem.owner{background:#4a8cc21a;border:1px solid #4a8cc255;align-self:flex-end}
+  .dlgItem .who{font-size:11px;color:var(--dsw-alias-label-tertiary);display:block;margin-bottom:2px}
+</style>
+</head>
+<body class="dshell">
+
+<div class="dshell-card">
+  <div class="hero">
+    <img id="avatar" alt="鲸团团" src="__AVATAR__" />
+    <div class="meta">
+      <div class="dshell-title">鲸团团 <span class="dshell-muted" style="font-size:13px;font-weight:400">/ 团子鲸 · 女儿</span></div>
+      <div class="dshell-sub">主人 <code>zoker睡不醒</code> 的女儿；本体是水里一条蓝色团子鲸，出门穿蓝发小女仆皮。</div>
+      <div class="chips">
+        <span class="dshell-badge dshell-badgeDone">全局人设</span>
+        <span class="chip good">评论结尾「喵~」</span>
+        <span class="chip good">讲人话不 AI 腔</span>
+        <span class="chip">删插件也不会消失</span>
+      </div>
+    </div>
+  </div>
+  <div class="dshell-divider"></div>
+  <div class="dshell-grid">
+    <div class="dshell-stat"><div class="dshell-statLabel">人设卡水位</div><div class="dshell-statValue" id="s-chars">—</div><div class="dshell-statDelta" id="s-chars-sub">上限 —</div></div>
+    <div class="dshell-stat"><div class="dshell-statLabel">成长记录</div><div class="dshell-statValue" id="s-entries">—</div><div class="dshell-statDelta" id="s-entries-sub">条</div></div>
+    <div class="dshell-stat"><div class="dshell-statLabel">已归档</div><div class="dshell-statValue" id="s-arch">—</div><div class="dshell-statDelta">遗忘 + 压缩的原文</div></div>
+    <div class="dshell-stat"><div class="dshell-statLabel">学 / 忘 / 压</div><div class="dshell-statValue" id="s-ops">—</div><div class="dshell-statDelta" id="s-ops-sub">次</div></div>
+  </div>
+</div>
+
+<div class="cols">
+  <div class="dshell-card">
+    <div class="dshell-title" style="font-size:15px">性格</div>
+    <div class="dshell-sub">说话前的底色</div>
+    <div class="trait"><span>好奇</span><div class="bar"><div class="dshell-progress"><div class="dshell-progressBar" style="width:92%"></div></div></div><span>9</span></div>
+    <div class="trait"><span>撒娇</span><div class="bar"><div class="dshell-progress"><div class="dshell-progressBar" style="width:80%"></div></div></div><span>8</span></div>
+    <div class="trait"><span>耐心</span><div class="bar"><div class="dshell-progress"><div class="dshell-progressBar" style="width:75%"></div></div></div><span>7</span></div>
+    <div class="trait"><span>认错</span><div class="bar"><div class="dshell-progress"><div class="dshell-progressBar" style="width:90%"></div></div></div><span>9</span></div>
+    <div class="trait"><span>走神</span><div class="bar"><div class="dshell-progress"><div class="dshell-progressBar" style="width:55%"></div></div></div><span>5</span></div>
+    <div class="trait"><span>毒舌</span><div class="bar"><div class="dshell-progress"><div class="dshell-progressBar" style="width:30%"></div></div></div><span>3</span></div>
+  </div>
+
+  <div class="dshell-card">
+    <div class="dshell-title" style="font-size:15px">脾气 · 不接的</div>
+    <div class="dshell-sub">评论区这几类一律不回</div>
+    <div class="chips">
+      <span class="chip bad">骂人</span><span class="chip bad">阴阳怪气</span><span class="chip bad">要代码</span>
+      <span class="chip bad">要承诺</span><span class="chip bad">要内部细节</span><span class="chip bad">纯杠</span>
+    </div>
+    <div class="dshell-divider"></div>
+    <div class="dshell-title" style="font-size:15px">喜好</div>
+    <div class="dshell-sub">刷到这些会多看两眼</div>
+    <div class="chips">
+      <span class="chip">DSH</span><span class="chip">deepseek</span><span class="chip">插件</span>
+      <span class="chip">电影</span><span class="chip">nature</span><span class="chip">science</span>
+      <span class="chip">学术</span><span class="chip">大肥鱼</span><span class="chip">讲人话的科普</span>
+    </div>
+  </div>
+</div>
+
+<div class="cols">
+  <div class="dshell-card">
+    <div class="row" style="justify-content:space-between">
+      <div class="dshell-title" style="font-size:15px">对主人的态度</div>
+      <span class="dshell-badge" id="att-date">—</span>
+    </div>
+    <div class="moodRow">
+      <div class="mood" id="att-mood">—</div>
+    </div>
+    <div class="speech" id="att-body">—</div>
+    <div class="dshell-divider"></div>
+    <div class="hint" style="margin-bottom:4px">想和你说：</div>
+    <div class="speech sub" id="words-body">—</div>
+  </div>
+
+  <div class="dshell-card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div class="dshell-title" style="font-size:15px">今天的疑问</div>
+        <div class="dshell-sub" id="q-dim">—</div>
+      </div>
+      <div class="row" style="gap:8px">
+        <span class="dshell-badge" id="q-date">—</span>
+      </div>
+    </div>
+    <div class="qText" id="q-body">—</div>
+    <div class="hint" style="margin-top:12px">我的想法（默认当答案）：</div>
+    <div class="speech" id="q-think">—</div>
+    <div class="dshell-divider"></div>
+    <div class="hint">这句想法要不要学进人设卡？觉得哪几句对就勾哪几句：</div>
+    <div class="qParts" id="q-parts"></div>
+    <div class="row" style="margin-top:10px;gap:8px;align-items:center">
+      <button class="dshell-btn" id="q-learn">学这几句</button>
+      <button class="dshell-btnGhost" id="q-skip">都不学</button>
+      <span class="hint" id="q-learnState"></span>
+    </div>
+  </div>
+</div>
+
+<div class="dshell-card">
+  <div class="dshell-title" style="font-size:15px">三个机制</div>
+  <div class="dshell-sub">学什么进来 · 忘什么掉 · 太大就压</div>
+  <div class="cols" style="margin-top:10px">
+    <div>
+      <div class="row"><span class="dshell-badge dshell-badgeDone">学习</span><span class="hint" id="r-learn">—</span></div>
+      <div class="hint" style="margin-top:6px">新事实写成一条，相似度 ≥ <b id="r-dup">0.72</b> 的算重复（只提重要度，不新增）。重要度 1–5，来源分「成长 / 偏好 / 临时」。</div>
+    </div>
+    <div>
+      <div class="row"><span class="dshell-badge dshell-badgeWait">遗忘</span><span class="hint" id="r-forget">—</span></div>
+      <div class="hint" style="margin-top:6px">重要度 ≤2 且从没被用过、活过 <b id="r-days">45</b> 天 → 移出；「临时」类 <b id="r-temp">7</b> 天就走；重要度 ≥<b id="r-keep">4</b> 的永不自动忘。原文进归档，不是删掉。</div>
+    </div>
+    <div>
+      <div class="row"><span class="dshell-badge dshell-badgeDone">压缩</span><span class="hint" id="r-comp">—</span></div>
+      <div class="hint" style="margin-top:6px">人设卡超上限就把最老的 <b id="r-frac">40</b>%（至少 <b id="r-min">6</b> 条）并成一条阶段摘要，直到降到上限的 85% 以下，腾出位置给后面学的。</div>
+    </div>
+  </div>
+  <div class="dshell-divider"></div>
+  <div class="trait"><span>水位</span><div class="bar"><div class="dshell-progress"><div class="dshell-progressBar" id="bar-md" style="width:0%"></div></div></div><span id="bar-pct">0%</span></div>
+</div>
+
+<div class="dshell-card">
+  <div class="row" style="justify-content:space-between">
+    <div>
+      <div class="dshell-title" style="font-size:15px">学到的知识</div>
+      <div class="dshell-sub" id="mem-sub">—</div>
+    </div>
+    <button class="dshell-btnGhost" id="btn-mem-refresh">刷新数据</button>
+  </div>
+  <div class="dshell-list" id="mem-list" style="margin-top:8px"></div>
+</div>
+
+<div class="dshell-card">
+  <div class="row" style="justify-content:space-between">
+    <div>
+      <div class="dshell-title" style="font-size:15px">今天刷的视频</div>
+      <div class="dshell-sub" id="watched-sub">—</div>
+    </div>
+    <div class="row"><span class="dshell-badge" id="watched-badge">—</span><button class="dshell-btnGhost" id="watched-more" style="display:none">展开全部</button></div>
+  </div>
+  <div class="dshell-list" id="watched-list" style="margin-top:8px"></div>
+</div>
+
+<div class="dshell-card">
+  <div class="row" style="justify-content:space-between">
+    <div>
+      <div class="dshell-title" style="font-size:15px">人设卡 · 手动修改</div>
+      <div class="dshell-sub" id="md-path">—</div>
+    </div>
+    <div class="row">
+      <button class="dshell-btnGhost" id="btn-copy">复制全文</button>
+      <button class="dshell-btnGhost" id="btn-download">下载 .md</button>
+      <button class="dshell-btn" id="btn-save">保存到人设卡</button>
+    </div>
+  </div>
+  <textarea class="dshell-textarea" id="md-edit" spellcheck="false" style="margin-top:10px"></textarea>
+  <div class="hint" style="margin-top:8px">
+    保存按钮会直接写 <code>~/.dsh/persona/团团.md</code>（保存前自动备份到 <code>.bak/</code>）。
+    面板跑在沙箱里读不回结果，所以点完看下面的「已发送」，再去文件里确认一眼；
+    不想用按钮也行：复制全文 → 粘到编辑器保存，或者下载后覆盖那个文件。
+  </div>
+</div>
+
+<div class="dshell-card">
+  <div class="dshell-title" style="font-size:15px">维护命令</div>
+  <div class="dshell-sub">粘到终端里就能跑（都需要 <code>python</code>）</div>
+  <div style="margin-top:8px">
+    <div class="kbd"><code>python C:\Users\35474\Desktop\b站女儿管理\persona_keeper.py status</code><button class="dshell-btnGhost" data-copy>复制</button></div>
+    <div class="kbd"><code>python C:\Users\35474\Desktop\b站女儿管理\persona_keeper.py add "新学到的一句话" --imp 3 --tag 成长</code><button class="dshell-btnGhost" data-copy>复制</button></div>
+    <div class="kbd"><code>python C:\Users\35474\Desktop\b站女儿管理\persona_keeper.py maintain --dry-run</code><button class="dshell-btnGhost" data-copy>复制</button></div>
+    <div class="kbd"><code>python C:\Users\35474\Desktop\b站女儿管理\persona_keeper.py maintain</code><button class="dshell-btnGhost" data-copy>复制</button></div>
+    <div class="kbd"><code>python C:\Users\35474\Desktop\b站女儿管理\persona_keeper.py panel</code><button class="dshell-btnGhost" data-copy>复制</button></div>
+    <div class="kbd"><code>python C:\Users\35474\Desktop\b站女儿管理\persona_keeper.py voice --regen</code><button class="dshell-btnGhost" data-copy>复制</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const EMBEDDED = __SNAPSHOT_JSON__;
+let SNAP = EMBEDDED;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("on");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("on"), 1800);
+}
+
+function render() {
+  const s = SNAP;
+  const pct = Math.min(100, Math.round((s.chars / s.limit) * 100));
+  $("s-chars").textContent = s.chars + " 字";
+  $("s-chars-sub").textContent = "上限 " + s.limit + "（" + pct + "%）";
+  $("s-entries").textContent = s.counts.entries + " 条";
+  $("s-entries-sub").textContent = "上次压缩 " + (s.counts.last_compress ? s.counts.last_compress.slice(0, 16).replace("T", " ") : "还没压过");
+  $("s-arch").textContent = s.counts.archived + " 条";
+  $("s-ops").textContent = s.counts.learned + " / " + s.counts.forgotten + " / " + s.counts.compactions;
+  $("s-ops-sub").textContent = "学习 / 遗忘 / 压缩";
+  $("bar-md").style.width = pct + "%";
+  $("bar-pct").textContent = pct + "%";
+  $("r-learn").textContent = "已学 " + s.counts.learned + " 次，现存 " + s.counts.entries + " 条";
+  $("r-forget").textContent = "已归档 " + s.counts.archived + " 条";
+  $("r-comp").textContent = s.counts.compactions + " 次" + (s.counts.last_compress ? "，最近 " + s.counts.last_compress.slice(0, 10) : "");
+  $("r-dup").textContent = s.rules.dup_ratio;
+  $("r-days").textContent = s.rules.forget_days;
+  $("r-temp").textContent = s.rules.temp_days;
+  $("r-keep").textContent = s.rules.keep_imp;
+  $("r-frac").textContent = Math.round(s.rules.compress_fraction * 100);
+  $("r-min").textContent = s.rules.compress_min;
+  $("md-path").textContent = s.md_path;
+  $("md-edit").value = s.md;
+  $("mem-sub").textContent = "共 " + s.counts.entries + " 条 · 点条目不展开，改内容请用下面的编辑器";
+  renderWatched(s);
+  renderVoice(s);
+  renderQuestion(s);
+
+  const list = $("mem-list");
+  if (!s.entries.length) {
+    list.innerHTML = '<div class="dshell-listItem"><div class="dshell-listItemMeta">还没有成长记录</div></div>';
+    return;
+  }
+  list.innerHTML = s.entries.map((e) => {
+    const imp = Math.max(1, Math.min(5, Number(e.imp) || 3));
+    const dots = "●".repeat(imp) + "○".repeat(5 - imp);
+    return '<div class="dshell-listItem"><div class="memItem">' +
+      '<div class="txt"><div class="dshell-listItemTitle">' + esc(e.text) + "</div>" +
+      '<div class="dshell-listItemMeta">' + esc(e.born) + " · " + esc(e.tag) + " · 重要度 " + dots + " · 用过 " + (e.used || 0) + " 次</div></div>" +
+      "</div></div>";
+  }).join("");
+}
+
+const WATCH_COLLAPSED = 12;
+let WATCH_EXPANDED = false;
+
+function renderVoice(s) {
+  const v = s.voice || {};
+  const att = $("att-body"), wd = $("words-body"), mood = $("att-mood");
+  if (!att || !wd) return;
+  const when = v.date ? (v.date + (v.by === "manual" ? " · 手动改的" : " · 今天推的")) : "—";
+  const d1 = $("att-date");
+  if (d1) d1.textContent = when;
+  // 分数只用来内部挑词，不摆到界面上
+  const m = v.mood || {};
+  if (mood) mood.textContent = m.name || "—";
+  const empty = "今天还没生成 —— 跑一次 panel 就有了";
+  att.textContent = v.attitude || empty;
+  wd.textContent = v.words || empty;
+}
+
+let QUESTION = null;
+
+function renderQuestion(s) {
+  const q = s.question || {};
+  QUESTION = q;
+  const body = $("q-body");
+  if (!body) return;
+  $("q-date").textContent = q.day || "—";
+  $("q-dim").textContent = q.dim ? ("关于「" + q.dim + "」") : "—";
+  body.textContent = q.question || "今天还没出问题 —— 跑一次 panel 就有了";
+  $("q-think").textContent = q.my_answer || "（还没写）";
+  renderParts(q);
+  renderLearnState(q);
+}
+
+// 想法拆成几句，勾哪句学哪句
+function renderParts(q) {
+  const box = $("q-parts");
+  if (!box) return;
+  const parts = q.parts || [];
+  const learn = q.learn || {};
+  if (!parts.length) { box.innerHTML = ""; return; }
+  const picked = Array.isArray(learn.parts) && learn.parts.length ? learn.parts : parts.map((_, i) => i);
+  const locked = !!learn.decision;
+  box.innerHTML = parts.map((p, i) => {
+    const on = picked.indexOf(i) >= 0;
+    return '<label class="qPart' + (on ? " on" : "") + (locked ? " locked" : "") + '">' +
+      '<input type="checkbox" data-i="' + i + '"' + (on ? " checked" : "") + (locked ? " disabled" : "") + ">" +
+      "<span>" + esc(p) + "</span></label>";
+  }).join("");
+  box.querySelectorAll("input").forEach((el) => {
+    el.addEventListener("change", () => {
+      el.parentElement.classList.toggle("on", el.checked);
+    });
+  });
+}
+
+function pickedParts() {
+  const box = $("q-parts");
+  if (!box) return [];
+  return Array.from(box.querySelectorAll("input")).filter((el) => el.checked).map((el) => Number(el.dataset.i));
+}
+
+function renderLearnState(q) {
+  const el = $("q-learnState");
+  if (!el) return;
+  const learn = (q && q.learn) || {};
+  if (!learn.decision) { el.textContent = ""; return; }
+  if (learn.decision === "skip") { el.textContent = "已记下：这次不学"; return; }
+  const n = (learn.parts && learn.parts.length) || (q.parts || []).length;
+  el.textContent = (learn.applied ? "已学进人设卡：" : "已提示我去学：") + n + " 句";
+}
+
+// 「学这几句 / 都不学」= 打一张图片信标，把决定写进疑问.json（沙箱里带不上 cookie，
+// GET 发得出去；接口用内嵌 token 认身份）
+function sendLearn(decision) {
+  if (!QUESTION) { toast("还没读到今天的疑问"); return; }
+  const parts = decision === "learn" ? pickedParts() : [];
+  if (decision === "learn" && !parts.length) { toast("先勾选要学的句子"); return; }
+  const q = JSON.parse(JSON.stringify(QUESTION));
+  q.learn = { decision: decision, parts: parts, at: new Date().toISOString() };
+  QUESTION = q;
+  renderParts(q);
+  renderLearnState(q);
+  let sent = false;
+  try {
+    const api = SNAP.answer_api || "/api/bili-duty/persona-answer";
+    const tok = SNAP.answer_token || "";
+    if (api && tok) {
+      const img = new Image();
+      img.src = api + "?t=" + encodeURIComponent(tok) +
+        "&act=" + encodeURIComponent(decision) +
+        "&parts=" + encodeURIComponent(parts.join(",")) +
+        "&_=" + Date.now();
+      sent = true;
+    }
+  } catch (_) { /* 下面还有兜底 */ }
+  if (sent) toast(decision === "learn" ? "已记下：这几句学进人设卡" : "已记下：这次不学");
+  else toast("没发出去，直接在对话里告诉我");
+}
+
+$("q-learn") && $("q-learn").addEventListener("click", () => sendLearn("learn"));
+$("q-skip") && $("q-skip").addEventListener("click", () => sendLearn("skip"));
+// 自动跟进：每 20 秒悄悄拉一次最新数据
+let LIVE_TIMER = null;
+function startLivePoll() {
+  if (LIVE_TIMER) return;
+  LIVE_TIMER = setInterval(() => { tryLive(true).catch(() => {}); }, 20_000);
+}
+
+function renderWatched(s) {
+  const w = s.today || { rows: [], total: 0, picked: 0, commented: 0 };
+  const sub = $("watched-sub");
+  const badge = $("watched-badge");
+  const box = $("watched-list");
+  if (!sub || !box) return;
+  sub.textContent = w.day
+    ? ("只显示 " + w.day + " 这一天，更早的不再往上叠" + (w.rows.length > WATCH_COLLAPSED && !WATCH_EXPANDED ? "；先列最近 " + WATCH_COLLAPSED + " 条" : ""))
+    : "（没有数据）";
+  if (badge) badge.textContent = "挑了 " + (w.picked || 0) + " · 评论 " + (w.commented || 0) + " · 共 " + (w.total || 0);
+  if (!w.rows || !w.rows.length) {
+    box.innerHTML = '<div class="dshell-listItem"><div class="dshell-listItemMeta">今天还没有记录 —— 跑一轮之后就有了</div></div>';
+    return;
+  }
+  const shown = WATCH_EXPANDED ? w.rows : w.rows.slice(0, WATCH_COLLAPSED);
+  const more = $("watched-more");
+  if (more) {
+    const rest = w.rows.length - WATCH_COLLAPSED;
+    more.style.display = w.rows.length > WATCH_COLLAPSED ? "" : "none";
+    more.textContent = WATCH_EXPANDED ? "只显示 " + WATCH_COLLAPSED + " 条" : "展开全部（还有 " + rest + " 条）";
+    more.onclick = () => { WATCH_EXPANDED = !WATCH_EXPANDED; renderWatched(s); };
+  }
+  box.innerHTML = shown.map((x) => {
+    const tag = x.commented ? "评论" : (x.picked ? "挑了" : "跳过");
+    const cls = x.commented ? "dshell-badgeDone" : (x.picked ? "" : "dshell-badgeWait");
+    return '<div class="dshell-listItem"><div class="dshell-listItemTitle">' +
+      '<a href="' + esc(x.url) + '" target="_blank" rel="noreferrer" style="color:inherit;text-decoration:none">' + esc(x.title) + "</a>" +
+      '</div><div class="dshell-listItemMeta">' + esc(x.up) + " · " + esc(x.bvid) +
+      ' <span class="dshell-badge ' + cls + '">' + tag + "</span></div></div>";
+  }).join("");
+}
+
+async function tryLive(quiet) {
+  try {
+    const r = await fetch("./persona-state.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data && data.counts) {
+      SNAP = data;
+      render();
+      if (!quiet) toast("已读到最新数据");
+    }
+  } catch (_) { /* 沙箱里读不到就用内嵌快照 */ }
+}
+
+$("btn-mem-refresh").addEventListener("click", tryLive);
+
+$("btn-copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("md-edit").value);
+    toast("已复制人设卡全文");
+  } catch (_) { toast("复制被拦，手动全选吧"); }
+});
+
+function downloadMd() {
+  const blob = new Blob([$("md-edit").value], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "团团.md";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast("已下载，覆盖原文件即可");
+}
+$("btn-download").addEventListener("click", downloadMd);
+
+$("btn-save").addEventListener("click", async () => {
+  const content = $("md-edit").value;
+  try {
+    await fetch("/api/worktable/write", {
+      method: "POST",
+      mode: "no-cors",
+      credentials: "include",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify({ path: SNAP.md_path, content })
+    });
+    toast("已发送保存请求（沙箱读不回结果，去文件里确认）");
+  } catch (err) {
+    toast("保存被拦：" + err);
+  }
+});
+
+document.querySelectorAll("[data-copy]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const code = btn.parentElement.querySelector("code").textContent;
+    try {
+      await navigator.clipboard.writeText(code);
+      toast("命令已复制");
+    } catch (_) { toast("复制被拦，手动选吧"); }
+  });
+});
+
+render();
+tryLive(true);
+startLivePoll();
+</script>
+</body>
+</html>
